@@ -1,7 +1,9 @@
 
 # Configuration for hotio qbitTorrentVPN container
 
-This guide provides step-by-step instructions on how to configure your hotio QBT container to forward protonvpn ports.  This is written for unraid in mind, but the scripts will work for any environment.
+This guide provides step-by-step instructions on how to configure your hotio QBT container to forward protonvpn ports. 
+
+## Unraid Setup
 
 ### 1. Copy Scripts
 
@@ -49,4 +51,62 @@ Config Type: Path
 Name: natpmp
 Container Path: /usr/local/bin/master.tar.gz
 Host Path: /path/to/master.tar.gz
+```
+
+# Docker Compose Setup ( Credits to elysium6497 )
+
+### 1. Copy Scripts
+
+First, copy the scripts to a safe location on the host which is hosting your container.
+
+### 2. Edit Your Docker Compose
+
+Add the following lines to the volumes block of qbittorrent in your compose file.
+
+```
+      - /path/to/your/startPortForward.sh:/etc/cont-init.d/startPortForward.sh
+      - /path/to/your/portForward.sh:/usr/local/bin/portForward.sh
+      # - /path/to/your/master.tar.gz:/usr/local/bin/master.tar.gz # if required
+```
+
+### 3. Restart Container
+
+"Compose Up" or docker-compose up -d
+
+
+### Docker Compose Example
+
+In this example, startPortForward.sh, portForward.sh, and py-natpmp-master.tar.gz are saved in the qbittorrent appdata directory in qbittorrent\portforward.
+
+```
+  qbittorrent:
+    container_name: qbittorrent
+    image: ghcr.io/hotio/qbittorrent
+    ports:
+      - "8080:8080"
+      - "8118:8118"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=Etc/UTC
+      - VPN_ENABLED=true
+      - VPN_LAN_NETWORK=192.168.1.0/24
+      - VPN_CONF=wg0
+      - VPN_ADDITIONAL_PORTS
+      - PRIVOXY_ENABLED=false
+    volumes:
+      - /mnt/user/appdata/qbittorrent:/config
+      - /mnt/user/data/torrents:/data/torrents
+      - /mnt/user/appdata/qbittorrent/portforward/startPortForward.sh:/etc/cont-init.d/startPortForward.sh
+      - /mnt/user/appdata/qbittorrent/portforward/portForward.sh:/usr/local/bin/portForward.sh
+      - /mnt/user/appdata/qbittorrent/portforward/master.tar.gz:/usr/local/bin/master.tar.gz
+    cap_add:
+      - NET_ADMIN
+    dns:
+      - 1.1.1.1
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.all.disable_ipv6=1
+    restart: unless-stopped
 ```
